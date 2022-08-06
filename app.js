@@ -10,7 +10,7 @@ var indexRouter = require('./routes/index');
 var authRouter = require('./routes/auth');
 var usersRouter = require('./routes/users');
 
-
+const { isAuth, isAdmin } = require('./middleware/authMiddleware');
 
 
 
@@ -43,7 +43,7 @@ app.use(session({
   }
 }))
 
-
+require('./config/passport');
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -56,19 +56,9 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-/**
-* Check if user is authenticated in a route
-*/
-function authUser (req, res, next) {
-  if (!req.isAuthenticated()) {
-      res.redirect('/login')
-  } else {
-      next();
-  }
-}
 
 
-app.use('/',  indexRouter );
+app.use('/', indexRouter );
 app.use('/',  authRouter);
 app.use('/users', usersRouter);
 

@@ -1,38 +1,14 @@
 var express = require('express');
 const passport = require('passport');
-const LocalStrategy = require('passport-local')
-const crypto = require('crypto');
-
+const {isAdmin, isAuth} = require('../middleware/authMiddleware');
 var router = express.Router();
-const {pool} = require('../mySQLDb');
 
-passport.use(new LocalStrategy(function verify(email, password, cb){
-  pool.get('SELECT * FROM users WHERE email = ?', [email], function(err, row){
-    if (err) return cb(err)
-    if (!row) return cb(null, false)
-
-    crypto.pbkdf2(password, row.salt, 310000, 32, 'sha256', function(err, hashedPassword) {
-      if (err ) return cb(err);
-      if (!crypto.timingSafeEqual(row.hashed_password, hashedPassword)){ return cb(null, false, { message: "Incorrect email or password"});}
-      return cb(null, row);
-    })
-  })
-}))
-
-passport.serializeUser(function(user,cb){
-  process.nextTick(function(){
-    cb(null, { id: user.id, email: user.email})
-  })
-})
-
-passport.deserializeUser(function(user, cb) {
-  process.nextTick(function() {
-    return cb(null, user);
+router.get('/logout', (req, res, next) => {
+  req.logout(function(err) {
+    if (err) { return next(err); }
+    res.redirect('/');
   });
 });
-
-
-
 
 
 router.get('/login', function(req, res, next) {
@@ -49,7 +25,7 @@ router.get('/login', function(req, res, next) {
 });
 
 router.post('/login/password', passport.authenticate('local', {
-  successRedirect: '/',
+  successRedirect: '/login-success',
   failureRedirect: '/login?error'
 }))
 
@@ -67,60 +43,13 @@ router.get('/signup', function(req, res, next) {
 });
 
 router.post('/signup', function(req, res, next) {
-  var salt = crypto.randomBytes(16);
-  crypto.pbkdf2(req.body.password, salt, 10000, 64, 'sha512', async function(err, hashedPassword) {
-    if (err) { return next(err); }
-    const hexPass = hashedPassword.toString('hex');
-    //   const aaa = pool.getConnection(function(conErr, conn){
-        
-    //     conn.query('INSERT INTO users (email, hashed_password, salt) VALUES (?, ?, ?)', [
-    //     req.body.email,
-    //     hexPass,
-    //     salt
-    //   ], function(err) {
-    //     pool.releaseConnection(conn);
-    //     console.log('my error: ', err)
-    //     if (err) { 
-    //       return next(err); }
-    //     var user = {
-    //       id: this.lastID,
-    //       email: req.body.email
-    //     };
-    //     req.login(user, function(err) {
-    //       if (err) { return next(err); }
-    //       res.redirect('/');
-    //     });
-    //   });
-    // }).then(err=>console.log('my error: ', err))
-    
-    const conn = await pool.getConnection()
-    console.log(conn)
-    try{
-      const qRes = await conn.query('INSERT INTO users (email, hashed_password, salt) VALUES (?, ?, ?)', [
-            req.body.email,
-            hexPass,
-            salt
-          ]);
 
-          pool.releaseConnection(conn);
-          console.log('my error: ', qRes)
-          if (err) { 
-            return next(err); }
-          var user = {
-            id: this.lastID,
-            email: req.body.email
-          };
-          req.login(user, function(err) {
-            if (err) { return next(err); }
-            res.redirect('/');
-          });
-    }
-    catch(err){
-      next(err)
-    }
-
-  });
 });
 
-
+router.get('/protected-route', isAuth, (req, res, next) => {
+  res.send('You made it to the route.');
+});
+router.get('/login-success', (req, res, next) => {
+  res.send('<p>You successfully logged in. --> <a href="/protected-route">Go to protected route</a></p>');
+});
 module.exports = router;
