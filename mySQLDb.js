@@ -1,4 +1,6 @@
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise');
+// ```https://www.npmjs.com/package/mysql2```
+// ```I was having issues with authentication using the mysql module - switched to mysql2 and it worked```
 
 require('dotenv').config();
 var options = {
@@ -10,5 +12,5 @@ var options = {
   database: process.env.DB_DATABASE// Database name
 };
 var pool = mysql.createPool(options);
-const promisePool = pool.promise();
+const promisePool = pool//.promise();
 module.exports.pool = promisePool;

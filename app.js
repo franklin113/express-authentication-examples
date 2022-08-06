@@ -43,6 +43,8 @@ app.use(session({
   }
 }))
 
+
+
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -53,8 +55,21 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
-app.use('/', authRouter);
+
+/**
+* Check if user is authenticated in a route
+*/
+function authUser (req, res, next) {
+  if (!req.isAuthenticated()) {
+      res.redirect('/login')
+  } else {
+      next();
+  }
+}
+
+
+app.use('/',  indexRouter );
+app.use('/',  authRouter);
 app.use('/users', usersRouter);
 
 module.exports = app;

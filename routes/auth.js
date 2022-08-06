@@ -31,11 +31,15 @@ passport.deserializeUser(function(user, cb) {
   });
 });
 
+
+
+
+
 router.get('/login', function(req, res, next) {
   res.send(/*html*/`
     <div>
       <h1>Login</h1>
-      <form action="/register" method="post">
+      <form action="/login/password" method="post">
         <input type="text" name="email" placeholder="Email" />
         <input type="password" name="password" placeholder="Password" />
         <button type="submit">Login</button>
@@ -46,20 +50,76 @@ router.get('/login', function(req, res, next) {
 
 router.post('/login/password', passport.authenticate('local', {
   successRedirect: '/',
-  failureRedirect: '/login'
+  failureRedirect: '/login?error'
 }))
 
-router.get('/register', function(req, res, next) {
+router.get('/signup', function(req, res, next) {
   res.send(/*html*/`
     <div>
       <h1>Register</h1>
-      <form action="/register" method="post">
+      <form action="/signup" method="post">
         <input type="text" name="email" placeholder="Email" />
         <input type="password" name="password" placeholder="Password" />
         <button type="submit">Register</button>
       </form>
     </div>
   `)
+});
+
+router.post('/signup', function(req, res, next) {
+  var salt = crypto.randomBytes(16);
+  crypto.pbkdf2(req.body.password, salt, 10000, 64, 'sha512', async function(err, hashedPassword) {
+    if (err) { return next(err); }
+    const hexPass = hashedPassword.toString('hex');
+    //   const aaa = pool.getConnection(function(conErr, conn){
+        
+    //     conn.query('INSERT INTO users (email, hashed_password, salt) VALUES (?, ?, ?)', [
+    //     req.body.email,
+    //     hexPass,
+    //     salt
+    //   ], function(err) {
+    //     pool.releaseConnection(conn);
+    //     console.log('my error: ', err)
+    //     if (err) { 
+    //       return next(err); }
+    //     var user = {
+    //       id: this.lastID,
+    //       email: req.body.email
+    //     };
+    //     req.login(user, function(err) {
+    //       if (err) { return next(err); }
+    //       res.redirect('/');
+    //     });
+    //   });
+    // }).then(err=>console.log('my error: ', err))
+    
+    const conn = await pool.getConnection()
+    console.log(conn)
+    try{
+      const qRes = await conn.query('INSERT INTO users (email, hashed_password, salt) VALUES (?, ?, ?)', [
+            req.body.email,
+            hexPass,
+            salt
+          ]);
+
+          pool.releaseConnection(conn);
+          console.log('my error: ', qRes)
+          if (err) { 
+            return next(err); }
+          var user = {
+            id: this.lastID,
+            email: req.body.email
+          };
+          req.login(user, function(err) {
+            if (err) { return next(err); }
+            res.redirect('/');
+          });
+    }
+    catch(err){
+      next(err)
+    }
+
+  });
 });
 
 
