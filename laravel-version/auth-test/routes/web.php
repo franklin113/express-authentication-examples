@@ -1,10 +1,8 @@
 <?php
 
+use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-
-// use auth middleware
-use Illuminate\Support\Facades\Auth;
-
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,24 +15,21 @@ use Illuminate\Support\Facades\Auth;
 |
 */
 
-// create authenticated routes
-Route::middleware(['auth'])->group(function () {
-    Route::get('/', function () {
-        return view('home');
-    });
+Route::get('/', function () {
+    return Inertia::render('Welcome', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+        'laravelVersion' => Application::VERSION,
+        'phpVersion' => PHP_VERSION,
+    ]);
 });
 
-Route::get('/login', function () {
-    return view('login');
-})->name('login');
-
-Route::post('/login', function () {
-    return view('login');
-})->name('login');
-
-Route::get('/logout', function () {
-})->name('logout');
-
-Route::get('/register', function () {
-    return view('register');
-})->name('register');
+Route::middleware([
+    'auth:sanctum',
+    config('jetstream.auth_session'),
+    'verified',
+])->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard');
+    })->name('dashboard');
+});
