@@ -10,8 +10,6 @@ var indexRouter = require('./routes/index');
 var authRouter = require('./routes/auth');
 var usersRouter = require('./routes/users');
 
-const { isAuth, isAdmin } = require('./middleware/authMiddleware');
-
 
 
 var app = express();
