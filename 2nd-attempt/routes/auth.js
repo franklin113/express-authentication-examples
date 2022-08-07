@@ -1,6 +1,9 @@
 // import the register user function from auth.js
 // import router
-const router = require('express').Router();
+var express = require('express');
+var router = express.Router();
+const passport = require('passport');
+
 const { registerUser } = require('../config/passport');
 
 // login route
@@ -42,8 +45,10 @@ router.post('/register', (req, res, next) => {
 
 // logout route
 router.get('/logout', (req, res)=>{
-  req.logout();
-  res.redirect('/');
+  req.logout(function(err) {
+    if (err) { return next(err); }
+    res.redirect('/');
+  });
 })
 
 module.exports = router;

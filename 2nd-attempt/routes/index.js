@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-const { isAuth, isAdmin } = require('./middleware/authMiddleware');
+const { isAuth, isAdmin } = require('../middleware/authMiddleware');
 
 
 /* GET home page. */

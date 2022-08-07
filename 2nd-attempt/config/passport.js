@@ -4,7 +4,8 @@
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
 const crypto = require("crypto");
-const {pool} = require("./config/database");
+const {pool} = require("./database");
+const { validPassword } = require("../lib/passwordUtils");
 // create a local instance, passing in the mysql connection pool
 
 
@@ -16,6 +17,9 @@ async function verifyCallback(email, password, cb) {
     const [rows, fields] = await conn.query("SELECT * FROM users WHERE email = ?", [
       email,
     ]);
+    if (!rows || rows.length === 0) {
+      return cb(null, false);
+    }
     const row = rows[0];
     console.log("rows", row);
     console.log('input data: ' , email, password)
