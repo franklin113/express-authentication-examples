@@ -1,8 +1,8 @@
 var express = require('express');
 const passport = require('passport');
+const { registerUser } = require('../config/passport');
 const {isAdmin, isAuth} = require('../middleware/authMiddleware');
 var router = express.Router();
-
 router.get('/logout', (req, res, next) => {
   req.logout(function(err) {
     if (err) { return next(err); }
@@ -43,7 +43,7 @@ router.get('/signup', function(req, res, next) {
 });
 
 router.post('/signup', function(req, res, next) {
-
+  registerUser(req, res, next);
 });
 
 router.get('/protected-route', isAuth, (req, res, next) => {

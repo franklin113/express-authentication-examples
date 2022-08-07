@@ -2,37 +2,38 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local");
 const crypto = require("crypto");
 const { pool } = require("../mySQLDb");
+const {genPassword, validPassword} = require('../lib/passwordUtils'); 
+
 
 async function verifyCallback(email, password, cb) {
   try {
     const conn = await pool.getConnection();
 
-    const qRes = await conn.query("SELECT * FROM users WHERE email = ?", [
+    const [rows, fields] = await conn.query("SELECT * FROM users WHERE email = ?", [
       email,
     ]);
-    console.log("qRes", qRes);
+    const row = rows[0];
+    console.log("rows", row);
+    console.log('input data: ' , email, password)
 
-    crypto.pbkdf2(
-      password,
-      row.salt,
-      310000,
-      32,
-      "sha256",
-      function (err, hashedPassword) {
-        if (err) return cb(err);
-        if (!crypto.timingSafeEqual(row.hashed_password, hashedPassword)) {
-          return cb(null, false, { message: "Incorrect email or password" });
-        }
-        return cb(null, row);
-      }
-    );
-    // })
+    const isValid = validPassword(password, row.hashed_password, row.salt);
+    if (isValid) {
+      return cb(null, row)
+    }
+    else {
+      return cb(null, false)
+    }
   } catch (err) {
     console.log("err", err);
     return cb(err, false);
   }
 }
-const strategy = new LocalStrategy(verifyCallback);
+const customFields = {
+  usernameField: "email",
+  passwordField: "password",
+}
+
+const strategy = new LocalStrategy(customFields,verifyCallback);
 passport.use(strategy);
 
 passport.serializeUser(function (user, cb) {
@@ -48,43 +49,31 @@ passport.deserializeUser(function (user, cb) {
 });
 
 const registerUser = async (req, res, next) => {
-  var salt = crypto.randomBytes(16);
-  crypto.pbkdf2(
-    req.body.password,
-    salt,
-    10000,
-    64,
-    "sha512",
-    async function (err, hashedPassword) {
-      if (err) {
-        return next(err);
-      }
-      const hexPass = hashedPassword.toString("hex");
 
-      const conn = await pool.getConnection();
-      try {
-        await conn.query(
-          "INSERT INTO users (email, hashed_password, salt) VALUES (?, ?, ?)",
-          [req.body.email, hexPass, salt]
-        );
+  const { salt, hash } = genPassword(req.body.password);
 
-        conn.release();
+    const conn = await pool.getConnection();
+    try {
+      await conn.query(
+        "INSERT INTO users (email, hashed_password, salt) VALUES (?, ?, ?)",
+        [req.body.email, hash, salt]
+      );
 
-        var user = {
-          id: this.lastID,
-          email: req.body.email,
-        };
-        req.login(user, function (err) {
-          if (err) {
-            return next(err);
-          }
-          res.redirect("/");
-        });
-      } catch (err) {
-        conn.release();
-        return next(err);
-      }
+      conn.release();
+
+      var user = {
+        id: this.lastID,
+        email: req.body.email,
+      };
+      req.login(user, function (err) {
+        if (err) {
+          return next(err);
+        }
+        res.redirect("/");
+      });
+    } catch (err) {
+      conn.release();
+      return next(err);
     }
-  );
 };
-module.exports.register = registerUser;
+module.exports.registerUser = registerUser;
